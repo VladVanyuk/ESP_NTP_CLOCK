@@ -3,7 +3,10 @@
 #include <Arduino.h>
 #include <time.h>
 
+#define UTC_OFFSET     0
+#define UTC_OFFSET_DST 0
 const char *NTP_SERVER = "ch.pool.ntp.org";
+
 const char *TZ_INFO = "EET-2EEST,M3.5.0/3,M10.5.0/4"; // enter your time zone (https://remotemonitoringsystems.ca/time-zone-abbreviations.php)
 
 tm timeinfo;
@@ -99,7 +102,7 @@ bool getNTPtime(uint32_t sec)
 
 void setupNTPClock()
 {
-    configTime(0, 0, NTP_SERVER);
+    configTime(UTC_OFFSET, UTC_OFFSET_DST, NTP_SERVER);
     setenv("TZ", TZ_INFO, 1);
     Serial.println("Getting NTP time");
     if (getNTPtime(10))

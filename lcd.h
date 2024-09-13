@@ -7,6 +7,15 @@
 #include <BigNumbers_I2C.h>
 #include "clock.h"
 #include "weather.h"
+#include "special_chars.h"
+
+enum CUSTOM_CHARS
+{
+  LCD_PACMAN = 1,
+  LCD_DOT = 2,
+  LCD_TERMOMETER = 3,
+  LCD_DROPLET = 4
+};
 
 LiquidCrystal_I2C LCD = LiquidCrystal_I2C(0x26, 16, 2);
 BigNumbers_I2C bigNum(&LCD);
@@ -28,9 +37,24 @@ void spinner()
   }
 }
 
+// void printLocalTime() {
+//   struct tm timeinfo_print;
+//   if (!getLocalTime(&timeinfo_print)) {
+//     LCD.setCursor(0, 1);
+//     LCD.println("Connection Err");
+//     return;
+//   }
+
+//   LCD.setCursor(8, 0);
+//   LCD.println(&timeinfo_print, "%H:%M:%S");
+
+//   LCD.setCursor(0, 1);
+//   LCD.println(&timeinfo_print, "%d/%m/%Y   %Z");
+// }
+
 void printTimeLCD(tm newTime, bool forcePrint = false)
 {
-  if (((newTime.tm_sec != lastPrintedTime.tm_sec) && (millis() - lastPrintedClockTime > 1000)) || forcePrint == true)
+  if (((newTime.tm_sec != lastPrintedTime.tm_sec) && (millis() - lastPrintedClockTime > 3000)) || forcePrint == true)
   {
 
     // if (newTime.tm_mday != lastPrintedTime.tm_mday)
@@ -54,25 +78,44 @@ void printTimeLCD(tm newTime, bool forcePrint = false)
     LCD.setCursor(0, 1);
     LCD.print(newTime.tm_hour);
     LCD.print(':');
+    if(newTime.tm_min < 10)
+    {
+      LCD.print('0');
+    }
     LCD.print(newTime.tm_min);
     LCD.print(':');
+    if(newTime.tm_sec < 10)
+    {
+      LCD.print('0');
+    }
     LCD.print(newTime.tm_sec);
     lastPrintedTime = newTime;
   }
+}
+
+void printTempLCD(float temp)
+{
+  LCD.setCursor(10, 0);
+  LCD.write((char)LCD_TERMOMETER);
+  LCD.print((float)temp,1);
+  LCD.write((char)LCD_DEGREE);
+  LCD.write('C');
+}
+
+void printHumLCD(float hum)
+{
+  LCD.setCursor(12, 1);
+  LCD.write((char)LCD_DROPLET);
+  LCD.print((float)hum,0);
+  LCD.write('%');
 }
 
 void printWeatherLCD(bool forcePrint = false)
 {
   if ((millis() - lastPrintedWeatherTime > timerSyncDelay_w) || forcePrint == true)
   {
-    LCD.setCursor(10, 0);
-    LCD.print(Weather.temp);
-    LCD.print((char)223);
-    LCD.print('C');
-      // lcd.write((char)0b11011111); //todo: test
-    LCD.setCursor(12, 1);
-    LCD.print(Weather.humidity);
-    LCD.print('%');
+    printTempLCD(Weather.temp);
+    printHumLCD(Weather.humidity);
   }
 }
 
@@ -83,10 +126,15 @@ void lcdSetupOne()
   LCD.init();
   LCD.backlight();
   bigNum.begin();
-  LCD.setCursor(0, 0);
-  LCD.print("Connecting to ");
-  LCD.setCursor(0, 1);
-  LCD.print("WiFi ");
+  
+  LCD.createChar(LCD_PACMAN, pacman);
+  LCD.createChar(LCD_DOT, dot);
+  LCD.createChar(LCD_TERMOMETER, termometer);
+  LCD.createChar(LCD_DROPLET, droplet);
+  
+  LCD.home();
+  LCD.print("WiFi Connecting");
+  
 }
 
 void lcdSetupTwo()
@@ -98,9 +146,10 @@ void lcdSetupTwo()
   LCD.print("Starting");
   delay(3000);
   LCD.clear();
-  LCD.setCursor(0, 0);
+  LCD.home();
   lastPrintedClockTime = millis();
   printTimeLCD(timeinfo, true);
+  // printLocalTime();
   lastPrintedWeatherTime = millis();
   printWeatherLCD(true);
   digitalWrite(LED_BUILTIN, HIGH);

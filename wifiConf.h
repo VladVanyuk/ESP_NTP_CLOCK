@@ -11,22 +11,39 @@
 
 #include <WiFiClient.h>
 #include "lcd.h"
+#include "special_chars.h"
 
 const char *ssid = "AsusLyra";
 const char *password = "123456qwerty";
 
 
-void setupWifi()
+void setupWifi(LiquidCrystal_I2C *lcd_p)
 {
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
-    Serial.print("Connecting.");
+    Serial.print("Connecting");
 
     // int retry_count = 0
     while (WiFi.status() != WL_CONNECTED)
     {
-        delay(500);
+        
         Serial.print(".");
+        for (int i = 1; i < 16; i++) {
+            lcd_p->setCursor(i, 1);
+            lcd_p->print("\1");
+        
+                for (int j = i + 1; j < 16; j++) {
+                    lcd_p->setCursor(j, 1);
+                    lcd_p->print("\2");
+                   
+                }
+                 lcd_p->createChar(1, pacman);
+                delay(300);
+                lcd_p->createChar(1, pacmanOpen);
+                delay(300);
+                lcd_p->setCursor(i, 1);
+                lcd_p->print(" ");
+        }
         // if (++retry_count > 1000) ESP.restart();
         // spinner();
     }
