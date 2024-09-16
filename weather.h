@@ -37,7 +37,7 @@ void setWeatherData(JsonDocument doc)
     // Serial.println(doc["time"].as<long>());
 
     Weather.temp = (float)(doc["main"]["temp"]) - 273.15;       // get temperature in °C
-    Weather.humidity = doc["main"]["humidity"];                 // get humidity in %
+    Weather.humidity = (int16_t)doc["main"]["humidity"];                 // get humidity in %
     Weather.pressure = (float)(doc["main"]["pressure"]) / 1000; // get pressure in bar
     Weather.wind_speed = doc["wind"]["speed"];                  // get wind speed in m/s
     Weather.wind_degree = doc["wind"]["deg"];                   // get wind degree in °
@@ -57,6 +57,7 @@ void httpGETRequest(const char *serverName)
         JsonDocument doc;
         ReadLoggingStream loggingStream(http.getStream(), Serial);
         deserializeJson(doc, loggingStream);
+
         setWeatherData(doc);
         printWeatherCurrent();
     }
@@ -80,11 +81,13 @@ void weatherSetup()
 
 void getWeatherLoop(uint32_t timeDelay)
 {
+    
     if (millis() - lastSyncTime_w > timeDelay)
     {
         if (WiFi.status() == WL_CONNECTED) // Check WiFi connection status
         {
             String serverPath = "http://api.openweathermap.org/data/2.5/weather?q=" + Location + "&APPID=" + API_Key;
+            // http://api.openweathermap.org/data/2.5/weather?q=Lviv,UA&APPID=8cd7834a6b2b8a74a77b47b7feb76237"
             Serial.println(serverPath.c_str());
             httpGETRequest(serverPath.c_str());
         }

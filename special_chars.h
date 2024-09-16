@@ -17,8 +17,16 @@ const char LCD_XAVG     = 0xF8;
 const char LCD_DEGREE   = 0xDF;
 const char LCD_DIVIDE   = 0xFD;
 
+enum CUSTOM_CHARS
+{
+  LCD_PACMAN_CL = 1,
+  LCD_PACMAN,
+  LCD_DOT,
+  LCD_TERMOMETER,
+  LCD_DROPLET
+};
 
-uint8_t pacman[8] = {
+uint8_t pacmanClosed[8] = {
   0b00000,
   0b00000,
   0b01110,
@@ -75,6 +83,68 @@ byte droplet[8] = //icon for water droplet
     B01110,
 };
 
+
+
+byte droplet_1[8] = //icon for water droplet
+{
+    B00100,
+    B00100,
+    B01010,
+    B01010,
+    B10001,
+    B10001,
+    B11111,
+    B01110,
+};
+
+byte droplet_2[8] = //icon for water droplet
+{
+    B00100,
+    B00100,
+    B01010,
+    B01010,
+    B10001,
+    B11111,
+    B11111,
+    B01110,
+};
+
+
+byte droplet_3[8] = //icon for water droplet
+{
+    B00100,
+    B00100,
+    B01010,
+    B01010,
+    B11111,
+    B11111,
+    B11111,
+    B01110,
+};
+
+byte droplet_4[8] = //icon for water droplet
+{
+    B00100,
+    B00100,
+    B01010,
+    B01110,
+    B11111,
+    B11111,
+    B11111,
+    B01110,
+};
+
+byte droplet_full[8] = //icon for water droplet
+{
+    B00100,
+    B00100,
+    B01110,
+    B01110,
+    B11111,
+    B11111,
+    B11111,
+    B01110,
+};
 
 // #define MODO_CMD  0
 // #define MODO_DATA 1

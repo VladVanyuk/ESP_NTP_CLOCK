@@ -1,11 +1,16 @@
 #ifndef CLOCK_NTP_H
 #define CLOCK_NTP_H
 #include <Arduino.h>
-#include <time.h>
+// #include <NTPClient.h>
 
-#define UTC_OFFSET     0
-#define UTC_OFFSET_DST 0
+#include <time.h>
+// #include <WiFiUdp.h>
+
+// #define UTC_OFFSET     0
+// #define UTC_OFFSET_DST 0
 const char *NTP_SERVER = "ch.pool.ntp.org";
+const char *NTP_SERVER2 = "pool.ntp.org";
+const char *NTP_SERVER3 = "europe.pool.ntp.org";
 
 const char *TZ_INFO = "EET-2EEST,M3.5.0/3,M10.5.0/4"; // enter your time zone (https://remotemonitoringsystems.ca/time-zone-abbreviations.php)
 
@@ -14,7 +19,7 @@ time_t now;
 uint32_t lastNTPtime = 0;
 uint32_t lastEntryTime = 0;
 
-const uint32_t timerClockDelay = 120;
+const uint32_t timerClockDelay = 120; //2mins
 
 void showTime(tm localTime)
 {
@@ -83,26 +88,24 @@ bool getNTPtime(uint32_t sec)
         Serial.print(".");
         delay(10);
     } while (((millis() - start) <= (1000 * sec)) && (timeinfo.tm_year < (2016 - 1900)));
-
+    Serial.println();
     if (timeinfo.tm_year <= (2016 - 1900))
     {
+        Serial.println("ERR: NTP time not set");
         return false; // the NTP call was not successful
     }
 
-    // Serial.print("now ");
-    // Serial.println(now);
     char time_output[30];
     strftime(time_output, 30, "%a  %d-%m-%y %T", localtime(&now));
-    // Serial.println(time_output);
-    // Serial.println();
-
+    Serial.println(time_output);
     return true;
 }
 
 
 void setupNTPClock()
 {
-    configTime(UTC_OFFSET, UTC_OFFSET_DST, NTP_SERVER);
+  if(WiFi.status() == WL_CONNECTED){
+    configTime(0, 0, NTP_SERVER);
     setenv("TZ", TZ_INFO, 1);
     Serial.println("Getting NTP time");
     if (getNTPtime(10))
@@ -118,6 +121,7 @@ void setupNTPClock()
     lastNTPtime = time(&now);
     lastEntryTime = millis();
     showTime(timeinfo);
+  }
 }
 
 
