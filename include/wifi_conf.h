@@ -54,7 +54,7 @@ void saveCredentials(const String& ssid, const String& password)
     }
 }
 
-void handleSaveConfig(AsyncWebServerRequest *request) 
+void handleSaveConfig(AsyncWebServerRequest *request, LiquidCrystal_I2C *lcd_p) 
 {
     if (!request->hasParam("ssid", true) || !request->hasParam("password", true)) 
     {
@@ -65,13 +65,18 @@ void handleSaveConfig(AsyncWebServerRequest *request)
     String ssid = request->getParam("ssid", true)->value();
     String password = request->getParam("password", true)->value();
     saveCredentials(ssid, password);
-
+    
+    Serial.printf("[WiFi] Change switch position so D0 is HIGH !!!\n");
+    lcd_p->clear();
+    lcd_p->setCursor(0, 0);
+    lcd_p->print("turn sw left");
+    delay(7000); // give user time to change switch position so D0 is HIGH
+    
     request->send(200, "text/html", "<h2>Saved! Rebooting...</h2>");
-    delay(1500);
     ESP.restart();
 }
 
-void startCaptivePortal() 
+void startCaptivePortal(LiquidCrystal_I2C *lcd_p) 
 {
     Serial.println("[WiFi] Starting AP Mode...");
 
@@ -86,7 +91,9 @@ void startCaptivePortal()
 
     web_server.serveStatic("/", LittleFS, "/setup").setDefaultFile("index.html");
 
-    web_server.on("/save_config", HTTP_POST, handleSaveConfig);
+    web_server.on("/save_config", HTTP_POST, [lcd_p](AsyncWebServerRequest *request) {
+        handleSaveConfig(request, lcd_p);
+    });
     web_server.onNotFound([](AsyncWebServerRequest *request) 
     {
         request->redirect("/");
@@ -104,16 +111,28 @@ void startCaptivePortal()
     }
 }
 
-void showWifiPacmanAnim(LiquidCrystal_I2C *lcd_p, unsigned long duration_ms = 1000) 
+void connectToWiFi(LiquidCrystal_I2C *lcd_p) 
 {
-    const unsigned long start_time = millis();
-
-    lcd_p->clear();
-    lcd_p->setCursor(0, 0);
-    lcd_p->print("WIFI Connecting");
-
-    while (WiFi.status() != WL_CONNECTED && millis() - start_time < duration_ms) 
+    String ssid, password;
+    if (!loadCredentials(ssid, password)) 
     {
+        Serial.println("[WiFi] No valid config found.");
+        startCaptivePortal(lcd_p);
+        return;
+    }
+
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(ssid.c_str(), password.c_str());
+    Serial.printf("[WiFi] Connecting to %s...\n", ssid.c_str());
+
+    for (int i = 0; i < 14 && WiFi.status() != WL_CONNECTED; ++i) 
+    {
+        delay(500);
+        Serial.printf("[WiFi] Attempt %d: %s\n", i + 1, WiFi.status() == WL_CONNECTED ? "Connected" : "Connecting...");
+        lcd_p->setCursor(0, 0);
+        lcd_p->print("Connecting... ");
+        lcd_p->print(i + 1);
+
         // animate pacman chomping dots
         for (int i = 0; i < 16 && WiFi.status() != WL_CONNECTED; ++i) 
         {
@@ -135,42 +154,26 @@ void showWifiPacmanAnim(LiquidCrystal_I2C *lcd_p, unsigned long duration_ms = 10
           
             // recreate char to animate bite
             lcd_p->createChar(LCD_PACMAN_CL, pacmanClosed);
-            delay(200);
+            delay(100);
             lcd_p->createChar(LCD_PACMAN_CL, pacmanOpen);
-            delay(200);
+            delay(100);
         }
+        lcd_p->clear();
     }
-}
-
-void connectToWiFi(LiquidCrystal_I2C *lcd_p) 
-{
-    String ssid, password;
-    if (!loadCredentials(ssid, password)) 
-    {
-        Serial.println("[WiFi] No valid config found.");
-        startCaptivePortal();
-        return;
-    }
-
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(ssid.c_str(), password.c_str());
-    Serial.printf("[WiFi] Connecting to %s...\n", ssid.c_str());
-
-    const uint16_t anim_duration = 10000; // 10s
-    showWifiPacmanAnim(lcd_p, anim_duration);
 
     if (WiFi.status() == WL_CONNECTED) 
     {
         Serial.printf("[WiFi] Connected! IP: %s\n", WiFi.localIP().toString().c_str());
         is_wifi_connected = true;
         captive_mode_active = false;
+        return;
     } 
-    else 
+    else
     {
         Serial.println("[WiFi] Connection failed. Starting AP...");
         LCD.setCursor(0, 0);
         LCD.print("No WiFi Connect");
-        startCaptivePortal();
+        startCaptivePortal(lcd_p);
     }
 }
 

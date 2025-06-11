@@ -16,10 +16,12 @@ public:
     SwitchInput(uint8_t bit0, uint8_t bit1, uint8_t bit2, uint8_t bit3, uint16_t debounce_ms = 100)
         : pins{bit0, bit1, bit2, bit3}, debounce_delay(debounce_ms)
         {
-            for (int i = 0; i < 4; ++i)
+            for (int i = 0; i < 3; ++i)
             {
                 pinMode(pins[i], INPUT_PULLUP);
+                
             }
+            pinMode(D0, INPUT);
     }
 
     void update() {

@@ -24,7 +24,16 @@ void setup(void) {
     lcdSetupOne();
     LittleFS.begin();
     listFiles("/");
-    setupWifi(&LCD);
+    if (digitalRead(D0) == LOW)
+    {
+        Serial.println("D0 is LOW, starting captive portal");
+        startCaptivePortal(&LCD);
+    }
+    else
+    {
+        Serial.println("D0 is HIGH, connecting to WiFi");
+        setupWifi(&LCD);
+    }
     if (is_wifi_connected)
     {
         lcdSetupTwo();
