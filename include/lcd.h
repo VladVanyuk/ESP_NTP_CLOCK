@@ -12,7 +12,6 @@
 
 #define SWITCH_DEBOUNCE_MS 100
 
-LiquidCrystal_I2C LCD = LiquidCrystal_I2C(0x26, 16, 2);
 BigNumbers_I2C big_num(&LCD);
 SwitchInput displaySwitch(D5, D6, D7, D0);
 Weather weather;
@@ -92,6 +91,57 @@ void printTimeLCD(tm new_time, bool force_print = false)
         }
         LCD.print(new_time.tm_sec);
 
+        last_printed_time = new_time;
+        last_printed_clock_time = millis();
+    }
+}
+
+void setupTimeChars()
+{
+    LCD.createChar(0, LT);
+    LCD.createChar(1, UB);
+    LCD.createChar(2, RT);
+    LCD.createChar(3, LL);
+    LCD.createChar(4, LB);
+    LCD.createChar(5, LR);
+    LCD.createChar(6, MB);
+    LCD.createChar(7, block);
+}
+
+void printBigTimeLCD(tm new_time, bool force_print = false)
+{
+    // only update every minute or when explicitly forced
+    if (((new_time.tm_min != last_printed_time.tm_min) 
+          && (millis() - last_printed_clock_time > 1000)) 
+          || force_print == true) 
+    {
+        setupTimeChars();
+        // print hours
+        LCD.setCursor(0, 1);
+        if (new_time.tm_hour < 10) 
+        {
+            printDigit(0, 0);
+            printDigit(static_cast<int>(new_time.tm_hour), 3);
+        }
+        else
+        {
+            printDigit(static_cast<int>(new_time.tm_hour / 10), 0);
+            printDigit(static_cast<int>(new_time.tm_hour % 10), 3);
+        }
+        LCD.setCursor(6, 1);
+        LCD.print(':');
+
+        // print minutes
+        if (new_time.tm_min < 10)
+        {
+            printDigit(0, 7);
+            printDigit(static_cast<int>(new_time.tm_min), 10);
+        }
+        else
+        {
+            printDigit(static_cast<int>(new_time.tm_min / 10), 7);
+            printDigit(static_cast<int>(new_time.tm_min % 10), 10);
+        }
         last_printed_time = new_time;
         last_printed_clock_time = millis();
     }
@@ -262,10 +312,14 @@ void lcdLoop()
         }
     }
 
-    if (state == SwitchInput::SHOW_TIME 
-        || state == SwitchInput::SHOW_ALL)
+    if (state == SwitchInput::SHOW_ALL)
     {
         printTimeLCD(time_info, true);
+    }
+
+    if (state == SwitchInput::SHOW_TIME)
+    {
+        printBigTimeLCD(time_info, true);
     }
 
     if (state == SwitchInput::SHOW_ALL)
