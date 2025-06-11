@@ -1,7 +1,4 @@
-#ifndef LED_STS_H
-#define LED_STS_H
-
-
+#pragma once
 
 void ledStsSetup()
 {
@@ -18,5 +15,3 @@ void ledStsOff()
 {
     digitalWrite(LED_BUILTIN, HIGH);
 }
-
-#endif // LED_STS_H
