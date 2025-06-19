@@ -10,7 +10,8 @@
 #include "special_chars.h"
 #include "switch_input.h"
 
-#define SWITCH_DEBOUNCE_MS 100
+#define SWITCH_DEBOUNCE_MS 50
+#define DEGREE_SYMBOL static_cast<char>(223)
 
 BigNumbers_I2C big_num(&LCD);
 SwitchInput displaySwitch(D5, D6, D7, D0);
@@ -117,7 +118,7 @@ void printBigTimeLCD(tm new_time, bool force_print = false)
     {
         setupTimeChars();
         // print hours
-        LCD.setCursor(0, 1);
+        LCD.setCursor(2, 1);
         if (new_time.tm_hour < 10) 
         {
             printDigit(0, 0);
@@ -128,8 +129,11 @@ void printBigTimeLCD(tm new_time, bool force_print = false)
             printDigit(static_cast<int>(new_time.tm_hour / 10), 0);
             printDigit(static_cast<int>(new_time.tm_hour % 10), 3);
         }
-        LCD.setCursor(6, 1);
-        LCD.print(':');
+        LCD.setCursor(8, 0);
+        LCD.print('.');
+        
+        LCD.setCursor(8, 1);
+        LCD.print('.');
 
         // print minutes
         if (new_time.tm_min < 10)
@@ -147,11 +151,11 @@ void printBigTimeLCD(tm new_time, bool force_print = false)
     }
 }
 
-void loadDropletIconSmall(const float humidity, uint8_t slot = LCD_SMALL_DROPLET)
+void loadDropletIconSmall(const int humidity, uint8_t slot = LCD_SMALL_DROPLET)
 {
     byte* icon;
 
-    uint8_t sw = static_cast<int>(humidity) / 16;
+    uint8_t sw = humidity / 16;
     switch (sw) 
     {
         case 0: icon = droplet_empty; break;
@@ -159,8 +163,8 @@ void loadDropletIconSmall(const float humidity, uint8_t slot = LCD_SMALL_DROPLET
         case 2: icon = droplet_mid1;  break;
         case 3: icon = droplet_mid2;  break;
         case 4: icon = droplet_mid3;  break;
-        case 5:
-        case 6:
+        case 5: icon = droplet_full; break;
+        case 6: icon = droplet_full; break;
         default: icon = droplet_full; break;
     }
     LCD.createChar(slot, icon);
@@ -173,7 +177,7 @@ void setupChars()
     big_num.begin();
 }
 
-void setupWeatherChars(const float humidity)
+void setupWeatherChars(const int humidity)
 {
     loadDropletIconSmall(humidity, LCD_SMALL_DROPLET);
     LCD.createChar(LCD_SMALL_THERMOMETER, thermometer);
@@ -184,14 +188,17 @@ void printTemperatureLCD(bool force_print = false, bool set_chars = false)
     if ((millis() - last_printed_weather_time > weather.get_timer_sync_delay())
          || force_print == true)
     {
+        int temp_int = static_cast<int>(weather.get_temp());
+         LCD.clear();
         if (set_chars) 
         { 
+            LCD.createChar(LCD_SMALL_THERMOMETER, thermometer);
+            LCD.setCursor(0, 0);
+            LCD.write(static_cast<char>(LCD_SMALL_THERMOMETER));
+
           setupChars(); 
         }
-
-        LCD.clear();
-
-        int temp_int = static_cast<int>(weather.get_temp());
+        
         int temp_dec = static_cast<int>((temp_int - static_cast<int>(weather.get_temp()) * 10));
 
         big_num.displayLargeInt(temp_int, 4, 0, 2, false);
@@ -202,8 +209,8 @@ void printTemperatureLCD(bool force_print = false, bool set_chars = false)
 
         LCD.setCursor(0, 1);
         LCD.print("temp");
-        LCD.setCursor(14, 1);
-        LCD.print(static_cast<char>(223)); // degree symbol
+        LCD.setCursor(14, 0);
+        LCD.print(DEGREE_SYMBOL);
         LCD.print("C");
 
         // reset last print time
@@ -216,19 +223,36 @@ void printHumidityLCD(bool force_print = false, bool set_chars = false)
     if ((millis() - last_printed_weather_time > weather.get_timer_sync_delay()) 
         || force_print == true)
     {
+         int hum = static_cast<int>(weather.get_humidity());
+         LCD.clear();
+
         if (set_chars) 
         {
-          setupChars();
+            loadDropletIconSmall(hum, LCD_SMALL_DROPLET);
+            LCD.setCursor(0, 0);
+            LCD.write(static_cast<char>(LCD_SMALL_DROPLET));
+
+            setupChars();
         }
-        LCD.clear();
-          
-        int hum = static_cast<int>(weather.get_humidity());
+        
         big_num.displayLargeInt(hum, 4, 0, 2, false);
     
         LCD.setCursor(0, 1);
         LCD.print("hum");
+// DEGREE_SYMBOL
+
+        LCD.setCursor(11, 0);
+        LCD.write(DEGREE_SYMBOL);
+
+        LCD.setCursor(12, 0);
+        LCD.print('/');
+
+
         LCD.setCursor(11, 1);
-        LCD.print('%');
+        LCD.print('/');
+
+        LCD.setCursor(12, 1);
+        LCD.print(DEGREE_SYMBOL);
           
         // reset last print time
         last_printed_weather_time = millis();
